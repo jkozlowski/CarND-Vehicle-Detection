@@ -1,0 +1,7 @@
+vehicles/
+non-vehicles/
+model.pkl
+scaler.pkl
+.DS_Store
+__pycache__/
+out.png
