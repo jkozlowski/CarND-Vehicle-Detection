@@ -19,6 +19,7 @@ X_scaler_file = 'scaler.pkl'
 # performs under different binning scenarios
 ### TODO: Tweak these parameters and see how the results change.
 color_space = 'RGB' # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
+color_space = 'YCrCb'
 orient = 9  # HOG orientations
 pix_per_cell = 8 # HOG pixels per cell
 cell_per_block = 2 # HOG cells per block
@@ -83,14 +84,14 @@ def main():
         X_scaler = joblib.load(X_scaler_file)
 
     image = mpimg.imread('test_images/test1.jpg')
-    draw_image = np.copy(image)
 
     # Uncomment the following line if you extracted training
     # data from .png images (scaled 0 to 1 by mpimg) and the
     # image you are searching is a .jpg (scaled 0 to 255)
     #image = image.astype(np.float32)/255
 
-    window_img = utils.find_cars(draw_image, 
+    window_img = utils.find_cars(image, 
+              color_space,
               ystart, 
               ystop, 
               scale, 
