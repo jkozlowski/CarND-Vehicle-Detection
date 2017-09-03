@@ -28,16 +28,16 @@ hist_bins = 16 # Number of histogram bins
 spatial_feat = True # Spatial features on or off
 hist_feat = True # Histogram features on or off
 hog_feat = True # HOG features on or off
-y_start_stop = [None, None] # Min and max in y to search in slide_window()
 ystart = 400
 ystop = 656
 scale = 1.5
 
-# orient=9
-# pix_per_cell=8
-# cell_per_block=2
-# spatial_size=(32, 32)
-# hist_bins=32
+orient=9
+pix_per_cell=8
+cell_per_block=2
+spatial_size=(32, 32)
+hist_bins=32
+hist_bins_range=(0,1)
 
 def load_images_from_directory(glob_pattern):
     images = []
@@ -56,6 +56,7 @@ def train_classifier():
                                   color_space, 
                                   spatial_size, 
                                   hist_bins, 
+                                  hist_bins_range, 
                                   orient, 
                                   pix_per_cell, 
                                   cell_per_block, 
@@ -81,15 +82,15 @@ def main():
         svc = joblib.load(model_file) 
         X_scaler = joblib.load(X_scaler_file)
 
-    image = mpimg.imread('test_images/test6.jpg')
+    image = mpimg.imread('test_images/test1.jpg')
     draw_image = np.copy(image)
 
     # Uncomment the following line if you extracted training
     # data from .png images (scaled 0 to 1 by mpimg) and the
     # image you are searching is a .jpg (scaled 0 to 255)
-    image = image.astype(np.float32)/255
+    #image = image.astype(np.float32)/255
 
-    window_img = utils.find_cars(image, 
+    window_img = utils.find_cars(draw_image, 
               ystart, 
               ystop, 
               scale, 
@@ -99,7 +100,8 @@ def main():
               pix_per_cell, 
               cell_per_block, 
               spatial_size, 
-              hist_bins)
+              hist_bins,
+              hist_bins_range)
 
     mpimg.imsave("out.png", window_img)
 
