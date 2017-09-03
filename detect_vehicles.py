@@ -9,6 +9,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.svm import LinearSVC
 from sklearn.model_selection import train_test_split
 from sklearn.externals import joblib
+from scipy.ndimage.measurements import label
 
 vehicles_glob = 'vehicles/**/*.png'
 non_vehicles_glob = "non-vehicles/**/*.png"
@@ -83,14 +84,9 @@ def main():
         svc = joblib.load(model_file) 
         X_scaler = joblib.load(X_scaler_file)
 
-    image = mpimg.imread('test_images/test1.jpg')
+    image = mpimg.imread('test_images/test6.jpg')
 
-    # Uncomment the following line if you extracted training
-    # data from .png images (scaled 0 to 1 by mpimg) and the
-    # image you are searching is a .jpg (scaled 0 to 255)
-    #image = image.astype(np.float32)/255
-
-    window_img = utils.find_cars(image, 
+    box_list = utils.find_cars(image, 
               color_space,
               ystart, 
               ystop, 
@@ -104,7 +100,21 @@ def main():
               hist_bins,
               hist_bins_range)
 
-    mpimg.imsave("out.png", window_img)
+    # Add heat to each box in box list
+    heat = np.zeros_like(image[:,:,0]).astype(np.float)
+    heat = utils.add_heat(heat,box_list)
+        
+    # Apply threshold to help remove false positives
+    heat = utils.apply_threshold(heat,1)
+
+    # Visualize the heatmap when displaying    
+    heatmap = np.clip(heat, 0, 255)
+
+    # Find final boxes from heatmap using label function
+    labels = label(heatmap)
+    draw_img = utils.draw_labeled_bboxes(np.copy(image), labels)
+
+    mpimg.imsave("out.png", draw_img)
 
 if __name__ == "__main__":
     main()
