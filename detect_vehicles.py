@@ -83,38 +83,23 @@ def main():
         print("Found model, loading")
         svc = joblib.load(model_file) 
         X_scaler = joblib.load(X_scaler_file)
-
-    image = mpimg.imread('test_images/test6.jpg')
-
-    box_list = utils.find_cars(image, 
-              color_space,
-              ystart, 
-              ystop, 
-              scale, 
-              svc, 
-              X_scaler, 
-              orient, 
-              pix_per_cell, 
-              cell_per_block, 
-              spatial_size, 
-              hist_bins,
-              hist_bins_range)
-
-    # Add heat to each box in box list
-    heat = np.zeros_like(image[:,:,0]).astype(np.float)
-    heat = utils.add_heat(heat,box_list)
-        
-    # Apply threshold to help remove false positives
-    heat = utils.apply_threshold(heat,1)
-
-    # Visualize the heatmap when displaying    
-    heatmap = np.clip(heat, 0, 255)
-
-    # Find final boxes from heatmap using label function
-    labels = label(heatmap)
-    draw_img = utils.draw_labeled_bboxes(np.copy(image), labels)
-
-    mpimg.imsave("out.png", draw_img)
+ 
+    # pipeline = Pipeline('harder_challenge_video')
+    # pipeline = Pipeline('challenge_video')
+    pipeline = utils.Pipeline('project_video',
+                              color_space,
+                              ystart, 
+                              ystop, 
+                              scale, 
+                              svc, 
+                              X_scaler, 
+                              orient, 
+                              pix_per_cell, 
+                              cell_per_block, 
+                              spatial_size, 
+                              hist_bins,
+                              hist_bins_range)
+    pipeline.process_video()
 
 if __name__ == "__main__":
     main()

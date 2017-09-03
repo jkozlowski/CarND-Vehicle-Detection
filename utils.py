@@ -7,6 +7,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.svm import LinearSVC
 from sklearn.model_selection import train_test_split
 from scipy.ndimage.measurements import label
+from moviepy.video.io.VideoFileClip import VideoFileClip
 
 def convert_color(image, color_space='RGB'):
     feature_image = None
@@ -286,3 +287,74 @@ def draw_labeled_bboxes(img, labels):
         cv2.rectangle(img, bbox[0], bbox[1], (0,0,255), 6)
     # Return the image
     return img
+
+class Pipeline:
+    def __init__(self, 
+                 video_path,
+                 color_space,
+                 ystart, 
+                 ystop, 
+                 scale, 
+                 svc, 
+                 X_scaler, 
+                 orient, 
+                 pix_per_cell, 
+                 cell_per_block, 
+                 spatial_size, 
+                 hist_bins,
+                 hist_bins_range):
+        self.video_path = video_path
+        self.color_space = color_space
+        self.ystart = ystart
+        self.ystop = ystop
+        self.scale = scale
+        self.svc = svc
+        self.X_scaler = X_scaler 
+        self.orient = orient
+        self.pix_per_cell = pix_per_cell
+        self.cell_per_block = cell_per_block
+        self.spatial_size = spatial_size
+        self.hist_bins = hist_bins
+        self.hist_bins_range = hist_bins_range
+        self.video = VideoFileClip('{}.mp4'.format(video_path))
+
+    def process_video(self):
+        output = '{}_result.mp4'.format(self.video_path)
+        #clip1 = self.video.subclip(41, 42)
+        clip1 = self.video
+        output_clip = clip1.fl_image(self.__process_image)
+        output_clip.write_videofile(output, audio=False)
+        
+    def __process_image(self, image):
+        
+        mpimg.imsave('output_images/original.jpg', image)
+        
+        box_list = find_cars(image, 
+              self.color_space,
+              self.ystart, 
+              self.ystop, 
+              self.scale, 
+              self.svc, 
+              self.X_scaler, 
+              self.orient, 
+              self.pix_per_cell, 
+              self.cell_per_block, 
+              self.spatial_size, 
+              self.hist_bins,
+              self.hist_bins_range)
+
+        # Add heat to each box in box list
+        heat = np.zeros_like(image[:,:,0]).astype(np.float)
+        heat = add_heat(heat,box_list)
+            
+        # Apply threshold to help remove false positives
+        heat = apply_threshold(heat,1)
+
+        # Visualize the heatmap when displaying    
+        heatmap = np.clip(heat, 0, 255)
+
+        # Find final boxes from heatmap using label function
+        labels = label(heatmap)
+        draw_img = draw_labeled_bboxes(np.copy(image), labels)
+        
+        return draw_img 
