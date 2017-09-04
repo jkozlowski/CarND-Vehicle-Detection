@@ -41,6 +41,11 @@ spatial_size=(32, 32)
 hist_bins=32
 hist_bins_range=(0,1)
 
+# Smoothing
+n_frames = 10
+single_frame_threshold = 1
+average_threshold = 6
+
 def load_images_from_directory(glob_pattern):
     images = []
 
@@ -84,8 +89,6 @@ def main():
         svc = joblib.load(model_file) 
         X_scaler = joblib.load(X_scaler_file)
  
-    # pipeline = Pipeline('harder_challenge_video')
-    # pipeline = Pipeline('challenge_video')
     pipeline = utils.Pipeline('project_video',
                               color_space,
                               ystart, 
@@ -98,7 +101,10 @@ def main():
                               cell_per_block, 
                               spatial_size, 
                               hist_bins,
-                              hist_bins_range)
+                              hist_bins_range,
+                              n_frames,
+                              single_frame_threshold,
+                              average_threshold)
     pipeline.process_video()
 
 if __name__ == "__main__":

@@ -252,10 +252,8 @@ def find_cars(img,
                 win_draw = np.int(window*scale)
                 box = ((xbox_left, ytop_draw+ystart),(xbox_left+win_draw,ytop_draw+win_draw+ystart))
                 boxes.append(box)
-                #cv2.rectangle(draw_img,(xbox_left, ytop_draw+ystart),(xbox_left+win_draw,ytop_draw+win_draw+ystart),(0,0,255),6) 
                 
     return boxes
-    #return draw_img
 
 def add_heat(heatmap, bbox_list):
     # Iterate through list of bboxes
@@ -273,8 +271,8 @@ def apply_threshold(heatmap, threshold):
     # Return thresholded map
     return heatmap
 
-def draw_labeled_bboxes(img, labels):
-    # Iterate through all detected cars
+def extract_bboxes(labels):
+    bboxes = []
     for car_number in range(1, labels[1]+1):
         # Find pixels with each car_number label value
         nonzero = (labels[0] == car_number).nonzero()
@@ -283,6 +281,28 @@ def draw_labeled_bboxes(img, labels):
         nonzerox = np.array(nonzero[1])
         # Define a bounding box based on min/max x and y
         bbox = ((np.min(nonzerox), np.min(nonzeroy)), (np.max(nonzerox), np.max(nonzeroy)))
+        bboxes.append(bbox)
+    return bboxes
+
+def get_heatmapped_boxes(image, box_list, threshold=1):
+    heat = np.zeros_like(image[:,:,0]).astype(np.float)
+    # Add heat to each box in box list
+    heat = add_heat(heat, box_list)
+
+    # Apply threshold to help remove false positives
+    heat = apply_threshold(heat,threshold)
+
+    # Visualize the heatmap when displaying    
+    heatmap = np.clip(heat, 0, 255)
+
+    # Find final boxes from heatmap using label function
+    labels = label(heatmap)
+    
+    return extract_bboxes(labels)
+
+def draw_bboxes(img, bboxes):
+    # Iterate through all detected cars
+    for bbox in bboxes:
         # Draw the box on the image
         cv2.rectangle(img, bbox[0], bbox[1], (0,0,255), 6)
     # Return the image
@@ -302,7 +322,10 @@ class Pipeline:
                  cell_per_block, 
                  spatial_size, 
                  hist_bins,
-                 hist_bins_range):
+                 hist_bins_range,
+                 n_frames,
+                 single_frame_threshold,
+                 average_threshold):
         self.video_path = video_path
         self.color_space = color_space
         self.ystart = ystart
@@ -316,7 +339,11 @@ class Pipeline:
         self.spatial_size = spatial_size
         self.hist_bins = hist_bins
         self.hist_bins_range = hist_bins_range
+        self.n_frames = n_frames
+        self.single_frame_threshold = single_frame_threshold
+        self.average_threshold = average_threshold
         self.video = VideoFileClip('{}.mp4'.format(video_path))
+        self.previous_boxes = []
 
     def process_video(self):
         output = '{}_result.mp4'.format(self.video_path)
@@ -343,18 +370,19 @@ class Pipeline:
               self.hist_bins,
               self.hist_bins_range)
 
-        # Add heat to each box in box list
-        heat = np.zeros_like(image[:,:,0]).astype(np.float)
-        heat = add_heat(heat,box_list)
-            
-        # Apply threshold to help remove false positives
-        heat = apply_threshold(heat,1)
-
-        # Visualize the heatmap when displaying    
-        heatmap = np.clip(heat, 0, 255)
-
-        # Find final boxes from heatmap using label function
-        labels = label(heatmap)
-        draw_img = draw_labeled_bboxes(np.copy(image), labels)
+        bboxes = get_heatmapped_boxes(image, box_list, threshold=self.single_frame_threshold)
         
+        self.previous_boxes.append(bboxes)
+        if (len(self.previous_boxes) > self.n_frames):
+            self.previous_boxes.pop(0)
+
+        flat_list=[]
+        for box in self.previous_boxes:
+            if box!=0:
+                for b in box:
+                    flat_list.append(b)
+        bboxes = get_heatmapped_boxes(image, flat_list, threshold=self.average_threshold)
+
+        draw_img = draw_bboxes(image, bboxes)
+
         return draw_img 
