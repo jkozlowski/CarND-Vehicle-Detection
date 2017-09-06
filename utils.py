@@ -272,11 +272,19 @@ def find_cars_multiple_scales(img,
     scales = [1.0, 1.5, 2.0, 2.5, 3.0, 3.5]
     
     bbox = []           
-    for scale in scales:
+    for idx, scale in enumerate(scales):
+
+        if (idx < (len(scales) / 2)):
+            ystart_small = ystart
+            ystop_small = int((ystart+ystop)/2)
+        else:
+            ystart_small = int((ystart+ystop)/2)
+            ystop_small = ystop
+
         box = find_cars(img, 
                         color_space, 
-                        ystart, 
-                        ystop, 
+                        ystart_small, 
+                        ystop_small, 
                         scale, 
                         svc, 
                         X_scaler,
