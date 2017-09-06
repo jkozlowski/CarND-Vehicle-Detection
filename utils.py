@@ -5,6 +5,7 @@ import time
 from skimage.feature import hog
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import LinearSVC
+from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.model_selection import train_test_split
 from scipy.ndimage.measurements import label
 from moviepy.video.io.VideoFileClip import VideoFileClip
@@ -153,6 +154,7 @@ def train_classifier(cars,
     print('Feature vector length:', len(X_train[0]))
     # Use a linear SVC 
     svc = LinearSVC()
+    #svc = GradientBoostingClassifier()
     # Check the training time for the SVC
     t=time.time()
     svc.fit(X_train, y_train)
@@ -255,6 +257,38 @@ def find_cars(img,
                 
     return boxes
 
+def find_cars_multiple_scales(img, 
+                       color_space,
+                       ystart, 
+                       ystop,
+                       svc, 
+                       X_scaler,
+                       orient, 
+                       pix_per_cell, 
+                       cell_per_block, 
+                       spatial_size, 
+                       hist_bins, 
+                       hist_bins_range):
+    scales = [1.0, 1.5, 2.0, 2.5, 3.0, 3.5]
+    
+    bbox = []           
+    for scale in scales:
+        box = find_cars(img, 
+                        color_space, 
+                        ystart, 
+                        ystop, 
+                        scale, 
+                        svc, 
+                        X_scaler,
+                        orient, 
+                        pix_per_cell, 
+                        cell_per_block, 
+                        spatial_size, 
+                        hist_bins, 
+                        hist_bins_range)
+        bbox.extend(box)
+    return bbox
+
 def add_heat(heatmap, bbox_list):
     # Iterate through list of bboxes
     for box in bbox_list:
@@ -356,11 +390,10 @@ class Pipeline:
         
         mpimg.imsave('output_images/original.jpg', image)
         
-        box_list = find_cars(image, 
+        box_list = find_cars_multiple_scales(image, 
               self.color_space,
               self.ystart, 
               self.ystop, 
-              self.scale, 
               self.svc, 
               self.X_scaler, 
               self.orient, 
