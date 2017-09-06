@@ -3,6 +3,7 @@ import numpy as np
 import cv2
 import glob
 import utils
+from params import *  
 import os
 from skimage.feature import hog
 from sklearn.preprocessing import StandardScaler
@@ -15,31 +16,6 @@ vehicles_glob = 'vehicles/**/*.png'
 non_vehicles_glob = "non-vehicles/**/*.png"
 model_file = 'model.pkl'
 X_scaler_file = 'scaler.pkl'
-
-# TODO play with these values to see how your classifier
-# performs under different binning scenarios
-### TODO: Tweak these parameters and see how the results change.
-color_space = 'RGB' # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
-color_space = 'YCrCb'
-orient = 9  # HOG orientations
-pix_per_cell = 8 # HOG pixels per cell
-cell_per_block = 2 # HOG cells per block
-hog_channel = 'ALL' # Can be 0, 1, 2, or "ALL"
-spatial_size = (16, 16) # Spatial binning dimensions
-hist_bins = 16 # Number of histogram bins
-spatial_feat = True # Spatial features on or off
-hist_feat = True # Histogram features on or off
-hog_feat = True # HOG features on or off
-ystart = 400
-ystop = 656
-scale = 1.5
-
-orient=9
-pix_per_cell=8
-cell_per_block=2
-spatial_size=(32, 32)
-hist_bins=32
-hist_bins_range=(0,1)
 
 # Smoothing
 n_frames = 10
@@ -93,7 +69,6 @@ def main():
                               color_space,
                               ystart, 
                               ystop, 
-                              scale, 
                               svc, 
                               X_scaler, 
                               orient, 

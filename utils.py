@@ -224,6 +224,7 @@ def find_cars(img,
     hog3 = get_hog_features(ch3, orient, pix_per_cell, cell_per_block, feature_vec=False)
     
     boxes = []
+    bboxes = []
     for xb in range(nxsteps):
         for yb in range(nysteps):
             ypos = yb*cells_per_step
@@ -248,14 +249,17 @@ def find_cars(img,
             test_features = X_scaler.transform(np.hstack((spatial_features, hist_features, hog_features)).reshape(1, -1))    
             test_prediction = svc.predict(test_features)
             
+            xbox_left = np.int(xleft*scale)
+            ytop_draw = np.int(ytop*scale)
+            win_draw = np.int(window*scale)
+            box = ((xbox_left, ytop_draw+ystart),(xbox_left+win_draw,ytop_draw+win_draw+ystart))
+
+            boxes.append(box)
+
             if test_prediction == 1:
-                xbox_left = np.int(xleft*scale)
-                ytop_draw = np.int(ytop*scale)
-                win_draw = np.int(window*scale)
-                box = ((xbox_left, ytop_draw+ystart),(xbox_left+win_draw,ytop_draw+win_draw+ystart))
-                boxes.append(box)
+                bboxes.append(box)
                 
-    return boxes
+    return bboxes
 
 def find_cars_multiple_scales(img, 
                        color_space,
@@ -274,12 +278,14 @@ def find_cars_multiple_scales(img,
     bbox = []           
     for idx, scale in enumerate(scales):
 
-        if (idx < (len(scales) / 2)):
-            ystart_small = ystart
-            ystop_small = int((ystart+ystop)/2)
-        else:
-            ystart_small = int((ystart+ystop)/2)
-            ystop_small = ystop
+        # if (idx < (len(scales) / 2)):
+        #     ystart_small = ystart
+        #     ystop_small = int((ystart+ystop)/2)
+        # else:
+        #     ystart_small = int((ystart+ystop)/2)
+        #     ystop_small = ystop
+        ystart_small = ystart
+        ystop_small = ystop
 
         box = find_cars(img, 
                         color_space, 
@@ -356,7 +362,6 @@ class Pipeline:
                  color_space,
                  ystart, 
                  ystop, 
-                 scale, 
                  svc, 
                  X_scaler, 
                  orient, 
@@ -372,7 +377,6 @@ class Pipeline:
         self.color_space = color_space
         self.ystart = ystart
         self.ystop = ystop
-        self.scale = scale
         self.svc = svc
         self.X_scaler = X_scaler 
         self.orient = orient
