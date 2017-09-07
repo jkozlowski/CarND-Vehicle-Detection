@@ -259,9 +259,10 @@ def find_cars(img,
             if test_prediction == 1:
                 bboxes.append(box)
                 
-    return bboxes
+    return bboxes, boxes
 
 def find_cars_multiple_scales(img, 
+                       scales,
                        color_space,
                        ystart, 
                        ystop,
@@ -273,35 +274,30 @@ def find_cars_multiple_scales(img,
                        spatial_size, 
                        hist_bins, 
                        hist_bins_range):
-    scales = [1.0, 1.5, 2.0, 2.5, 3.0, 3.5]
     
-    bbox = []           
+    all_bbox = []           
+    all_box = []           
     for idx, scale in enumerate(scales):
 
-        # if (idx < (len(scales) / 2)):
-        #     ystart_small = ystart
-        #     ystop_small = int((ystart+ystop)/2)
-        # else:
-        #     ystart_small = int((ystart+ystop)/2)
-        #     ystop_small = ystop
         ystart_small = ystart
         ystop_small = ystop
 
-        box = find_cars(img, 
-                        color_space, 
-                        ystart_small, 
-                        ystop_small, 
-                        scale, 
-                        svc, 
-                        X_scaler,
-                        orient, 
-                        pix_per_cell, 
-                        cell_per_block, 
-                        spatial_size, 
-                        hist_bins, 
-                        hist_bins_range)
-        bbox.extend(box)
-    return bbox
+        bboxes, boxes = find_cars(img, 
+                                  color_space, 
+                                  ystart_small, 
+                                  ystop_small, 
+                                  scale, 
+                                  svc, 
+                                  X_scaler,
+                                  orient, 
+                                  pix_per_cell, 
+                                  cell_per_block, 
+                                  spatial_size, 
+                                  hist_bins, 
+                                  hist_bins_range)
+        all_bbox.extend(bboxes)
+        all_box.append(boxes)
+    return all_bbox, all_box
 
 def add_heat(heatmap, bbox_list):
     # Iterate through list of bboxes
@@ -346,19 +342,20 @@ def get_heatmapped_boxes(image, box_list, threshold=1):
     # Find final boxes from heatmap using label function
     labels = label(heatmap)
     
-    return extract_bboxes(labels)
+    return extract_bboxes(labels), heatmap 
 
-def draw_bboxes(img, bboxes):
+def draw_bboxes(img, bboxes, color=(0,0,255)):
     # Iterate through all detected cars
     for bbox in bboxes:
         # Draw the box on the image
-        cv2.rectangle(img, bbox[0], bbox[1], (0,0,255), 6)
+        cv2.rectangle(img, bbox[0], bbox[1], color, 6)
     # Return the image
     return img
 
 class Pipeline:
     def __init__(self, 
                  video_path,
+                 scales,
                  color_space,
                  ystart, 
                  ystop, 
@@ -374,6 +371,7 @@ class Pipeline:
                  single_frame_threshold,
                  average_threshold):
         self.video_path = video_path
+        self.scales = scales
         self.color_space = color_space
         self.ystart = ystart
         self.ystop = ystop
@@ -390,6 +388,7 @@ class Pipeline:
         self.average_threshold = average_threshold
         self.video = VideoFileClip('{}.mp4'.format(video_path))
         self.previous_boxes = []
+        self.frame = 0
 
     def process_video(self):
         output = '{}_result.mp4'.format(self.video_path)
@@ -400,23 +399,25 @@ class Pipeline:
         
     def __process_image(self, image):
         
-        mpimg.imsave('output_images/original.jpg', image)
+        mpimg.imsave('output_images/original-{}.jpg'.format(self.frame), image)
         
-        box_list = find_cars_multiple_scales(image, 
-              self.color_space,
-              self.ystart, 
-              self.ystop, 
-              self.svc, 
-              self.X_scaler, 
-              self.orient, 
-              self.pix_per_cell, 
-              self.cell_per_block, 
-              self.spatial_size, 
-              self.hist_bins,
-              self.hist_bins_range)
+        bbox_list, box_list = find_cars_multiple_scales(image, 
+                                      self.scales,
+                                      self.color_space,
+                                      self.ystart, 
+                                      self.ystop, 
+                                      self.svc, 
+                                      self.X_scaler, 
+                                      self.orient, 
+                                      self.pix_per_cell, 
+                                      self.cell_per_block, 
+                                      self.spatial_size, 
+                                      self.hist_bins,
+                                      self.hist_bins_range)
 
-        bboxes = get_heatmapped_boxes(image, box_list, threshold=self.single_frame_threshold)
-        
+        bboxes, heatmap = get_heatmapped_boxes(image, bbox_list, threshold=self.single_frame_threshold)
+        mpimg.imsave('output_images/heatmap-single-{}.jpg'.format(self.frame), heatmap)
+
         self.previous_boxes.append(bboxes)
         if (len(self.previous_boxes) > self.n_frames):
             self.previous_boxes.pop(0)
@@ -426,8 +427,11 @@ class Pipeline:
             if box!=0:
                 for b in box:
                     flat_list.append(b)
-        bboxes = get_heatmapped_boxes(image, flat_list, threshold=self.average_threshold)
+        bboxes, heatmap = get_heatmapped_boxes(image, flat_list, threshold=self.average_threshold)
+        mpimg.imsave('output_images/heatmap-average-{}.jpg'.format(self.frame), heatmap)
 
         draw_img = draw_bboxes(image, bboxes)
+        mpimg.imsave('output_images/output-{}.jpg'.format(self.frame), draw_img)
 
+        self.frame = self.frame + 1
         return draw_img 

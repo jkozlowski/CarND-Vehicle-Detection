@@ -14,12 +14,10 @@ from scipy.ndimage.measurements import label
 
 vehicles_glob = 'vehicles/**/*.png'
 non_vehicles_glob = "non-vehicles/**/*.png"
-model_file = 'model.pkl'
-X_scaler_file = 'scaler.pkl'
 
 # Smoothing
 n_frames = 10
-single_frame_threshold = 1
+single_frame_threshold = 4
 average_threshold = 6
 
 def load_images_from_directory(glob_pattern):
@@ -65,7 +63,8 @@ def main():
         svc = joblib.load(model_file) 
         X_scaler = joblib.load(X_scaler_file)
  
-    pipeline = utils.Pipeline('project_video',
+    pipeline = utils.Pipeline('test_video',
+                              scales,
                               color_space,
                               ystart, 
                               ystop, 

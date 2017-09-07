@@ -13,12 +13,12 @@ The goals / steps of this project are the following:
 [image1]: ./examples/car.png
 [image2]: ./examples/not_car.png
 [image3]: ./examples/HOG.png
-
 [image4]: ./examples/sliding_windows.jpg
 [image5]: ./examples/sliding_window.jpg
-[image6]: ./examples/bboxes_and_heat.png
-[image7]: ./examples/labels_map.png
-[image8]: ./examples/output_bboxes.png
+[image6]: ./examples/pipeline.jpg
+[image7]: ./examples/original_and_heat.jpg
+[image8]: ./examples/heatmap_average.png
+[image9]: ./examples/output.png
 [video1]: ./project_video_result.mp4
 
 ## [Rubric](https://review.udacity.com/#!/rubrics/513/view) Points
@@ -64,15 +64,21 @@ I randomized the data and split a training and test sets.
 
 ####1. Describe how (and identify where in your code) you implemented a sliding window search.  How did you decide what scales to search and how much to overlap windows?
 
-I decided to search random window positions at random scales all over the image and came up with this (ok just kidding I didn't actually ;):
+The code is in `utils.py` in `find_cars_multiple_scales`.
 
-![alt text][image3]
+The code searches at three different scales that I eyeballed. Here is a visualisation of all the scales:
+
+![alt text][image4]
+
+and a single scale that shows all the windows searched at that scale:
+
+![alt text][image5]
 
 ####2. Show some examples of test images to demonstrate how your pipeline is working.  What did you do to optimize the performance of your classifier?
 
-Ultimately I searched on two scales using YCrCb 3-channel HOG features plus spatially binned color and histograms of color in the feature vector, which provided a nice result.  Here are some example images:
+Ultimately I searched on three scales using YCrCb 3-channel HOG features plus spatially binned color and histograms of color in the feature vector, which provided a nice result.  Here is an example image:
 
-![alt text][image4]
+![alt text][image6]
 ---
 
 ### Video Implementation
@@ -83,19 +89,23 @@ Here's a [link to my video result](./project_video.mp4)
 
 ####2. Describe how (and identify where in your code) you implemented some kind of filter for false positives and some method for combining overlapping bounding boxes.
 
-I recorded the positions of positive detections in each frame of the video.  From the positive detections I created a heatmap and then thresholded that map to identify vehicle positions.  I then used `scipy.ndimage.measurements.label()` to identify individual blobs in the heatmap.  I then assumed each blob corresponded to a vehicle.  I constructed bounding boxes to cover the area of each blob detected.  
+The code is in ``utils.py`` in ``Pipeline#__process_image`` method
+
+I recorded the positions of positive detections in each frame of the video.  From the positive detections I created a heatmap and then thresholded that map to identify vehicle positions.  I then used `scipy.ndimage.measurements.label()` to identify individual blobs in the heatmap.  I then assumed each blob corresponded to a vehicle.  I constructed bounding boxes to cover the area of each blob detected.
+
+Once I had it for a single frame, I added those to a list of previous bounding boxes (which I keep for last 10 frames), and repeat the heatmap and label process for all those bounding boxes and draw those on the frame. This helped filter out noise and keep the bounding boxes a little more stable. 
 
 Here's an example result showing the heatmap from a series of frames of video, the result of `scipy.ndimage.measurements.label()` and the bounding boxes then overlaid on the last frame of video:
 
 ### Here are six frames and their corresponding heatmaps:
 
-![alt text][image5]
+![alt text][image7]
 
 ### Here is the output of `scipy.ndimage.measurements.label()` on the integrated heatmap from all six frames:
-![alt text][image6]
+![alt text][image8]
 
 ### Here the resulting bounding boxes are drawn onto the last frame in the series:
-![alt text][image7]
+![alt text][image9]
 
 
 
@@ -105,5 +115,5 @@ Here's an example result showing the heatmap from a series of frames of video, t
 
 ####1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
 
-Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.  
+ 
 

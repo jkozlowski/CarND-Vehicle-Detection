@@ -1,3 +1,6 @@
+model_file = 'model.pkl'
+X_scaler_file = 'scaler.pkl'
+
 color_space = 'YCrCb'
 orient = 9  # HOG orientations
 pix_per_cell = 8 # HOG pixels per cell
@@ -10,4 +13,5 @@ spatial_feat = True # Spatial features on or off
 hist_feat = True # Histogram features on or off
 hog_feat = True # HOG features on or off
 ystart = 400
-ystop = 528
+ystop = 656
+scales = [1.25, 1.5, 2.0]
