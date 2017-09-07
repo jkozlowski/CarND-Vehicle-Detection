@@ -17,8 +17,8 @@ The goals / steps of this project are the following:
 [image5]: ./examples/sliding_window.jpg
 [image6]: ./examples/pipeline.jpg
 [image7]: ./examples/original_and_heat.jpg
-[image8]: ./examples/heatmap_average.png
-[image9]: ./examples/output.png
+[image8]: ./examples/heatmap_average.jpg
+[image9]: ./examples/output.jpg
 [video1]: ./project_video_result.mp4
 
 ## [Rubric](https://review.udacity.com/#!/rubrics/513/view) Points
@@ -115,5 +115,6 @@ Here's an example result showing the heatmap from a series of frames of video, t
 
 ####1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
 
- 
+In general the pipeline is pretty robust, but it is very slow to compute (definitely not real-time), therefore it would help to reduce the number of windows further. Maybe there is a way to search at a larger scale and then focus the search on a specific area once enough matches are found.
 
+Better smoothing techniques would help stabilize the windows, e.g. once a car is found, trying to predict it's possible positions in the next frame.
