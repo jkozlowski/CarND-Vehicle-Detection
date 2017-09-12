@@ -110,7 +110,7 @@ def visualise_heat():
     fig.subplots_adjust(top=0.88)
     fig.savefig('examples/original_and_heat.jpg')
 
-# visualise_hog()
-# visualise_windows()
-# visualise_pipeline()
+visualise_hog()
+visualise_windows()
+visualise_pipeline()
 visualise_heat()

@@ -18,7 +18,7 @@ non_vehicles_glob = "non-vehicles/**/*.png"
 # Smoothing
 n_frames = 10
 single_frame_threshold = 4
-average_threshold = 6
+average_threshold = 4
 
 def load_images_from_directory(glob_pattern):
     images = []
@@ -63,7 +63,7 @@ def main():
         svc = joblib.load(model_file) 
         X_scaler = joblib.load(X_scaler_file)
  
-    pipeline = utils.Pipeline('test_video',
+    pipeline = utils.Pipeline('project_video',
                               scales,
                               color_space,
                               ystart, 
@@ -78,7 +78,8 @@ def main():
                               hist_bins_range,
                               n_frames,
                               single_frame_threshold,
-                              average_threshold)
+                              average_threshold,
+                              save_pipeline_images=True)
     pipeline.process_video()
 
 if __name__ == "__main__":

@@ -9,8 +9,9 @@ from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.model_selection import train_test_split
 from scipy.ndimage.measurements import label
 from moviepy.video.io.VideoFileClip import VideoFileClip
+from collections import deque
 
-def convert_color(image, color_space='RGB'):
+def convert_color(image, color_space):
     feature_image = None
     if color_space != 'RGB':
         if color_space == 'HSV':
@@ -65,10 +66,10 @@ def color_hist(img, nbins=32, bins_range=(0, 256)):
 
 # Define a function to extract features from a list of images
 # Have this function call bin_spatial() and color_hist()
-def extract_features(imgs, color_space='RGB', spatial_size=(32, 32),
-                     hist_bins=32, hist_bins_range=(0,256), orient=9, 
-                     pix_per_cell=8, cell_per_block=2, hog_channel=0,
-                     spatial_feat=True, hist_feat=True, hog_feat=True):
+def extract_features(imgs, color_space, spatial_size,
+                     hist_bins, hist_bins_range, orient, 
+                     pix_per_cell, cell_per_block, hog_channel,
+                     spatial_feat, hist_feat, hog_feat):
     # Create a list to append feature vectors to
     features = []
     # Iterate through the list of images
@@ -119,21 +120,21 @@ def train_classifier(cars,
                      hog_feat):
     
     print("Extracting car features")
-    car_features = extract_features(cars, color_space=color_space, 
-                        spatial_size=spatial_size, hist_bins=hist_bins, 
-                        hist_bins_range=hist_bins_range, 
-                        orient=orient, pix_per_cell=pix_per_cell, 
-                        cell_per_block=cell_per_block, 
-                        hog_channel=hog_channel, spatial_feat=spatial_feat, 
-                        hist_feat=hist_feat, hog_feat=hog_feat)
+    car_features = extract_features(cars, color_space, 
+                        spatial_size, hist_bins, 
+                        hist_bins_range, 
+                        orient, pix_per_cell, 
+                        cell_per_block, 
+                        hog_channel, spatial_feat, 
+                        hist_feat, hog_feat)
     print("Extracting not car features")
-    notcar_features = extract_features(notcars, color_space=color_space, 
-                            spatial_size=spatial_size, hist_bins=hist_bins, 
-                            hist_bins_range=hist_bins_range, 
-                            orient=orient, pix_per_cell=pix_per_cell, 
-                            cell_per_block=cell_per_block, 
-                            hog_channel=hog_channel, spatial_feat=spatial_feat, 
-                            hist_feat=hist_feat, hog_feat=hog_feat)
+    notcar_features = extract_features(notcars, color_space, 
+                            spatial_size, hist_bins, 
+                            hist_bins_range, 
+                            orient, pix_per_cell, 
+                            cell_per_block, 
+                            hog_channel, spatial_feat, 
+                            hist_feat, hog_feat)
 
     X = np.vstack((car_features, notcar_features)).astype(np.float64)                        
     # Fit a per-column scaler
@@ -197,7 +198,7 @@ def find_cars(img,
     img = img.astype(np.float32)/255
     
     img_tosearch = img[ystart:ystop,:,:]
-    ctrans_tosearch = convert_color(img_tosearch, color_space=color_space)
+    ctrans_tosearch = convert_color(img_tosearch, color_space)
     if scale != 1:
         imshape = ctrans_tosearch.shape
         ctrans_tosearch = cv2.resize(ctrans_tosearch, (np.int(imshape[1]/scale), np.int(imshape[0]/scale)))
@@ -214,7 +215,7 @@ def find_cars(img,
     # 64 was the orginal sampling rate, with 8 cells and 8 pix per cell
     window = 64
     nblocks_per_window = (window // pix_per_cell) - cell_per_block + 1
-    cells_per_step = 2  # Instead of overlap, define how many cells to step
+    cells_per_step = 1  # Instead of overlap, define how many cells to step
     nxsteps = (nxblocks - nblocks_per_window) // cells_per_step
     nysteps = (nyblocks - nblocks_per_window) // cells_per_step
     
@@ -369,7 +370,8 @@ class Pipeline:
                  hist_bins_range,
                  n_frames,
                  single_frame_threshold,
-                 average_threshold):
+                 average_threshold,
+                 save_pipeline_images=False):
         self.video_path = video_path
         self.scales = scales
         self.color_space = color_space
@@ -383,23 +385,24 @@ class Pipeline:
         self.spatial_size = spatial_size
         self.hist_bins = hist_bins
         self.hist_bins_range = hist_bins_range
-        self.n_frames = n_frames
         self.single_frame_threshold = single_frame_threshold
         self.average_threshold = average_threshold
         self.video = VideoFileClip('{}.mp4'.format(video_path))
-        self.previous_boxes = []
+        self.previous_boxes = deque(maxlen = n_frames)
         self.frame = 0
+        self.save_pipeline_images = save_pipeline_images
 
     def process_video(self):
         output = '{}_result.mp4'.format(self.video_path)
-        #clip1 = self.video.subclip(41, 42)
         clip1 = self.video
+        #clip1 = self.video.subclip(4, 10)
         output_clip = clip1.fl_image(self.__process_image)
         output_clip.write_videofile(output, audio=False)
         
     def __process_image(self, image):
         
-        mpimg.imsave('output_images/original-{}.jpg'.format(self.frame), image)
+        if self.save_pipeline_images:
+            mpimg.imsave('output_images/original-{}.jpg'.format(self.frame), image)
         
         bbox_list, box_list = find_cars_multiple_scales(image, 
                                       self.scales,
@@ -416,11 +419,11 @@ class Pipeline:
                                       self.hist_bins_range)
 
         bboxes, heatmap = get_heatmapped_boxes(image, bbox_list, threshold=self.single_frame_threshold)
-        mpimg.imsave('output_images/heatmap-single-{}.jpg'.format(self.frame), heatmap)
+        
+        if self.save_pipeline_images:
+            mpimg.imsave('output_images/heatmap-single-{}.jpg'.format(self.frame), heatmap)
 
         self.previous_boxes.append(bboxes)
-        if (len(self.previous_boxes) > self.n_frames):
-            self.previous_boxes.pop(0)
 
         flat_list=[]
         for box in self.previous_boxes:
@@ -428,10 +431,14 @@ class Pipeline:
                 for b in box:
                     flat_list.append(b)
         bboxes, heatmap = get_heatmapped_boxes(image, flat_list, threshold=self.average_threshold)
-        mpimg.imsave('output_images/heatmap-average-{}.jpg'.format(self.frame), heatmap)
+        
+        if self.save_pipeline_images:
+            mpimg.imsave('output_images/heatmap-average-{}.jpg'.format(self.frame), heatmap)
 
         draw_img = draw_bboxes(image, bboxes)
-        mpimg.imsave('output_images/output-{}.jpg'.format(self.frame), draw_img)
+
+        if self.save_pipeline_images:
+            mpimg.imsave('output_images/output-{}.jpg'.format(self.frame), draw_img)
 
         self.frame = self.frame + 1
         return draw_img 
